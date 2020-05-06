@@ -246,9 +246,52 @@ bool SendMsgToShareMemory()
     //_getch();  //这个函数是一个不回显函数，当用户按下某个字符时，函数自动读取，无需按回车
 
     //4. 从进程的地址空间中撤消文件数据的映像
-    //::UnmapViewOfFile(pBuf);
+    ::UnmapViewOfFile(pBuf);
 
     //5. 关闭文件映射对象和文件对象
-    //::CloseHandle(hMapFile);
+    ::CloseHandle(hMapFile);
     return true;
+}
+
+//读取共享内存数据
+int RevShareMemData()
+{
+    //接收数据的进程后启动，用于接收数据，即读取视图的数据 
+    HANDLE  hMapFile = NULL;
+    LPCTSTR pBuf = NULL;
+
+    //1. 打开一个命名的文件映射内核对象
+    hMapFile = ::OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, szMapFileName);
+    if (NULL == hMapFile)
+    {
+        _tprintf(TEXT("Could not open file mapping object (%d).\n"), GetLastError());
+        return -1;
+    }
+
+    //2. 将文件映射内核对象hFileMapping映射到当前应用程序的进程地址pBuf，通过该指针可以读写共享的内存区域
+    pBuf = (LPTSTR)::MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+    if (NULL == pBuf)
+    {
+        _tprintf(TEXT("Could not map view of file (%d). \n"), GetLastError());
+
+        ::CloseHandle(hMapFile);
+        hMapFile = NULL;
+
+        return -1;
+    }
+
+    //3. 显示接收到的数据
+    for (int i = 0; i < _tcsclen(pBuf); i++)
+    {
+        _tprintf(TEXT("%c"), *(pBuf + i));
+    }
+    printf("\n");
+
+    //4. 从进程的地址空间中撤消文件数据的映像
+    ::UnmapViewOfFile(pBuf);
+
+    //5. 关闭文件映射对象和文件对象
+    ::CloseHandle(hMapFile);
+
+    return 0;
 }
